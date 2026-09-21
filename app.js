@@ -48,6 +48,16 @@ function quoteForm(loadId){
 async function refresh(){
  const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});const g=$("#opportunityGrid");if(r.error){g.innerHTML='<div class="empty">No se pudo cargar la información.</div>';return}if(!r.data?.length){g.innerHTML='<div class="empty">No hay cargas reales todavía. Publica una para probar.</div>';return}g.innerHTML=r.data.map(l=>'<article class="opportunity"><div class="opp-head"><span class="pill">📦 '+esc(l.cargo_type)+'</span><span class="urgency">'+esc(l.urgency)+'</span></div><div class="opp-route"><strong>'+esc(l.origin)+'</strong><span>→</span><strong>'+esc(l.destination)+'</strong></div><div class="opp-meta"><span>⚖️ '+esc(l.quantity)+'</span><span>📅 '+esc(l.pickup_date)+'</span></div><div class="opp-bottom"><span class="budget">'+(l.budget?"Presupuesto $"+Number(l.budget).toFixed(2):"Precio a cotizar")+'</span><span class="privacy">🔒 Contacto protegido</span></div></article>').join("")
 }
+let liveChannel=null;
+function startLiveMarket(){
+  if(liveChannel) return;
+  liveChannel=sb.channel("movelo-live-market")
+    .on("postgres_changes",{event:"*",schema:"public",table:"load_requests"},()=>refresh())
+    .on("postgres_changes",{event:"*",schema:"public",table:"quotes"},()=>refresh())
+    .subscribe();
+  setInterval(refresh,15000);
+}
+
 async function render(){
  const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";return}const p=await myProfile();box.innerHTML='<span>Sesión: <b>'+esc(u.email)+'</b> · '+esc(p?.role||"usuario")+'</span> <button id="logoutBtn" class="secondary small">Salir</button>';$("#logoutBtn").onclick=async()=>{await sb.auth.signOut();render();refresh()};$("#loginNav").textContent="Mi cuenta"
 }
@@ -55,5 +65,5 @@ async function start(role){const u=await user();if(!u){authForm(role);return}awa
 $("#clientBtn").onclick=$("#clientBtn2").onclick=()=>start("customer");
 $("#carrierBtn").onclick=$("#carrierBtn2").onclick=()=>start("carrier");
 $("#loginNav").onclick=async()=>{const p=await myProfile();if(p?.role==="customer")customerDashboard();else if(p?.role==="carrier")carrierLoads();else authForm("customer")};
-$("#refreshBtn").onclick=refresh;$("#menuBtn").onclick=()=>$(".nav").classList.toggle("show");
+$("#refreshBtn").onclick=refresh;startLiveMarket();$("#menuBtn").onclick=()=>$(".nav").classList.toggle("show");
 sb.auth.onAuthStateChange(()=>setTimeout(render,0));refresh();render();
