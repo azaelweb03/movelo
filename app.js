@@ -48,6 +48,55 @@ async function carrierDashboard(){
  openModal('<span class="eyebrow">TRANSPORTISTA</span><h2>Configura tu transporte.</h2><form id="carrierForm"><label>Vehículo<select name="vehicle_type" required><option>Carro</option><option>Pickup</option><option>Camión</option><option>Mula / pesado</option><option>Moto</option><option>Transporte de personas</option><option>Maquinaria</option></select></label><div class="two"><label>Capacidad<input name="capacity" placeholder="Ej. 2,000 kg"></label><label>Zona base<input name="base_zone" placeholder="Ej. Penonomé"></label></div><label>Tipos de carga<input name="cargo_types" placeholder="Ej. agrícola, seca, maquinaria"></label><label>Retornos<select name="return_alerts"><option value="true">Sí, quiero oportunidades de regreso</option><option value="false">No por ahora</option></select></label><button class="primary submit">Guardar y ver cargas →</button></form>');
  $("#carrierForm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const r=await sb.from("carrier_profiles").upsert({id:u.id,vehicle_type:d.vehicle_type,capacity:d.capacity,base_zone:d.base_zone,cargo_types:d.cargo_types,return_alerts:d.return_alerts==="true"});if(r.error){alert(r.error.message);return}carrierLoads()}
 }
+async function carrierOperations(){
+ const u=await user();if(!u)return authForm("carrier");
+ const r=await sb.from("quotes").select("id,amount,note,status,load_id,load_requests(id,cargo_type,origin,destination,pickup_date,quantity,urgency,status)").eq("carrier_id",u.id).order("id",{ascending:false});
+ if(r.error){alert(r.error.message);return}
+ let h='<span class="eyebrow">MI MOVELO</span><h2>Mis operaciones</h2><p class="modal-sub">Aquí ves tus cotizaciones y los viajes aceptados.</p><div class="dashboard">';
+ if(!r.data?.length)h+='<p class="empty">Todavía no has enviado cotizaciones.</p>';
+ for(const q of r.data||[]){const l=q.load_requests;
+   h+='<article class="dash-card"><div><b>'+esc(l?.cargo_type||"Carga")+'</b><span class="status">'+esc(q.status)+'</span></div><strong>'+esc(l?.origin||"")+' → '+esc(l?.destination||"")+'</strong><small>'+esc(l?.quantity||"")+' · '+esc(l?.pickup_date||"")+' · '+esc(l?.urgency||"")+'</small><p>Tu cotización: <b>
+ const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});if(r.error){alert(r.error.message);return}
+ let h='<span class="eyebrow">TRANSPORTISTA</span><h2>Cargas abiertas</h2><p class="modal-sub">No ves teléfonos. Solo la información necesaria para cotizar.</p><div class="dashboard">';
+ if(!r.data?.length)h+='<p class="empty">No hay cargas abiertas todavía.</p>';
+ for(const l of r.data||[])h+='<article class="dash-card"><div><b>'+esc(l.cargo_type)+'</b><span class="status">'+esc(l.urgency)+'</span></div><strong>'+esc(l.origin)+' → '+esc(l.destination)+'</strong><small>'+esc(l.quantity)+' · '+esc(l.pickup_date)+'</small><p>'+esc(l.notes||"Sin detalles adicionales.")+'</p><button class="primary small quoteBtn" data-load="'+l.id+'">Cotizar</button></article>';
+ h+='</div>';openModal(h);document.querySelectorAll(".quoteBtn").forEach(b=>b.onclick=()=>quoteForm(b.dataset.load))
+}
+function quoteForm(loadId){
+ openModal('<span class="eyebrow">COTIZACIÓN</span><h2>¿Cuánto cobras por este viaje?</h2><form id="quoteForm"><label>Precio<input name="amount" type="number" step="0.01" required placeholder="Ej. 200"></label><label>Mensaje (opcional)<textarea name="note" rows="3" placeholder="Horario, condiciones, etc."></textarea></label><button class="primary submit">Enviar cotización →</button><small class="form-note">🔒 Tu teléfono no se comparte.</small></form>');
+ $("#quoteForm").onsubmit=async e=>{e.preventDefault();const u=await user(),d=Object.fromEntries(new FormData(e.target));const r=await sb.from("quotes").insert({load_id:loadId,carrier_id:u.id,amount:Number(d.amount),note:d.note||null,status:"pending"});if(r.error){alert(r.error.message);return}openModal('<div class="success"><div class="success-icon">✓</div><span class="eyebrow">ENVIADA</span><h2>Cotización enviada.</h2><p>El cliente la verá desde su cuenta. Su teléfono sigue protegido.</p><button class="primary submit" id="backLoads">Volver a cargas</button></div>');$("#backLoads").onclick=carrierLoads}
+}
+async function refresh(){
+ const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});const g=$("#opportunityGrid");if(r.error){g.innerHTML='<div class="empty">No se pudo cargar la información.</div>';return}if(!r.data?.length){g.innerHTML='<div class="empty">No hay cargas reales todavía. Publica una para probar.</div>';return}g.innerHTML=r.data.map(l=>'<article class="opportunity"><div class="opp-head"><span class="pill">📦 '+esc(l.cargo_type)+'</span><span class="urgency">'+esc(l.urgency)+'</span></div><div class="opp-route"><strong>'+esc(l.origin)+'</strong><span>→</span><strong>'+esc(l.destination)+'</strong></div><div class="opp-meta"><span>⚖️ '+esc(l.quantity)+'</span><span>📅 '+esc(l.pickup_date)+'</span></div><div class="opp-bottom"><span class="budget">'+(l.budget?"Presupuesto $"+Number(l.budget).toFixed(2):"Precio a cotizar")+'</span><span class="privacy">🔒 Contacto protegido</span></div></article>').join("")
+}
+let liveChannel=null;
+function startLiveMarket(){
+  if(liveChannel) return;
+  liveChannel=sb.channel("movelo-live-market")
+    .on("postgres_changes",{event:"*",schema:"public",table:"load_requests"},()=>refresh())
+    .on("postgres_changes",{event:"*",schema:"public",table:"quotes"},()=>refresh())
+    .subscribe();
+  setInterval(refresh,15000);
+}
+
+async function render(){
+ const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";return}const p=await myProfile();box.innerHTML='<span>Sesión: <b>'+esc(u.email)+'</b> · '+esc(p?.role||"usuario")+'</span> <button id="logoutBtn" class="secondary small">Salir</button>';$("#logoutBtn").onclick=async()=>{await sb.auth.signOut();render();refresh()};$("#loginNav").textContent="Mi cuenta"
+}
+async function start(role){const u=await user();if(!u){authForm(role);return}await profile(role);render();role==="customer"?loadForm():carrierDashboard()}
+$("#clientBtn").onclick=$("#clientBtn2").onclick=()=>start("customer");
+$("#carrierBtn").onclick=$("#carrierBtn2").onclick=()=>start("carrier");
+$("#loginNav").onclick=async()=>{const p=await myProfile();if(p?.role==="customer")customerDashboard();else if(p?.role==="carrier")carrierOperations();else authForm("customer")};
+$("#refreshBtn").onclick=refresh;startLiveMarket();$("#menuBtn").onclick=()=>$(".nav").classList.toggle("show");
+sb.auth.onAuthStateChange(()=>setTimeout(render,0));refresh();render();+Number(q.amount).toFixed(2)+'</b>'+(q.note?' · '+esc(q.note):"")+'</p>';
+   if(q.status==="accepted"&&l?.status==="accepted")h+='<button class="secondary small chatBtn" data-load="'+q.load_id+'">Abrir chat</button>';
+   else if(q.status==="pending")h+='<span class="muted">Esperando respuesta del cliente.</span>';
+   h+='</article>';
+ }
+ h+='</div><button class="primary submit" id="openLoads">Ver cargas abiertas</button>';
+ openModal(h);
+ $("#openLoads").onclick=carrierLoads;
+ document.querySelectorAll(".chatBtn").forEach(b=>b.onclick=()=>chatBox(b.dataset.load));
+}
 async function carrierLoads(){
  const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});if(r.error){alert(r.error.message);return}
  let h='<span class="eyebrow">TRANSPORTISTA</span><h2>Cargas abiertas</h2><p class="modal-sub">No ves teléfonos. Solo la información necesaria para cotizar.</p><div class="dashboard">';
