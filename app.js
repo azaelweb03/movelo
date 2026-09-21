@@ -115,15 +115,6 @@ function startLiveMarket(){
  setInterval(connect,5000);
  setInterval(refresh,15000);
 }
-let liveChannel=null;
-function startLiveMarket(){
- if(liveChannel)return;
- liveChannel=sb.channel("movelo-live-market")
-   .on("postgres_changes",{event:"*",schema:"public",table:"load_requests"},()=>refresh())
-   .on("postgres_changes",{event:"*",schema:"public",table:"quotes"},()=>refresh())
-   .subscribe();
- setInterval(refresh,15000);
-}
 async function render(){
  const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";return}
  const p=await myProfile();
