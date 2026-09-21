@@ -30,18 +30,32 @@ async function customerDashboard(){
  for(const l of r.data||[]){const q=await sb.from("quotes").select("id,amount,note,status").eq("load_id",l.id).order("amount",{ascending:true});h+='<article class="dash-card"><div><b>'+esc(l.cargo_type)+'</b><span class="status">'+esc(l.status)+'</span></div><strong>'+esc(l.origin_area)+' → '+esc(l.destination_area)+'</strong><small>'+esc(l.quantity)+' · '+esc(l.requested_date)+' · '+esc(l.urgency)+'</small>'+(q.data?.length?'<div class="quotes"><b>Cotizaciones</b>'+q.data.map(x=>'<div class="quote"><span>$'+Number(x.amount).toFixed(2)+(x.note?' · '+esc(x.note):"")+'</span>'+(x.status==="pending"&&l.status==="open"?'<button class="primary small accept" data-q="'+x.id+'">Aceptar</button>':(x.status==="accepted"?'<button class="secondary small chatBtn" data-load="'+l.id+'">Chat</button>':'<span>'+esc(x.status)+'</span>'))+'</div>').join("")+'</div>':'<p class="muted">Aún no hay cotizaciones.</p>')+'</article>'}
  h+='</div><button class="primary submit" id="newLoad">+ Publicar otra carga</button>';openModal(h);$("#newLoad").onclick=loadForm;document.querySelectorAll(".accept").forEach(b=>b.onclick=async()=>{const x=await sb.rpc("accept_quote",{p_quote_id:b.dataset.q});if(x.error)alert(x.error.message);else customerDashboard()});document.querySelectorAll(".chatBtn").forEach(b=>b.onclick=()=>chatBox(b.dataset.load))}
 async function chatBox(loadId){
- const u=await user();if(!u)return authForm("customer");
+ const u=await user();if(!u){authForm("customer");return}
  const load=await sb.from("load_requests").select("id,cargo_type,origin_area,destination_area,status").eq("id",loadId).maybeSingle();
  if(load.error||!load.data){alert(load.error?.message||"Operación no encontrada");return}
- const msgs=await sb.from("messages").select("id,sender_id,body,created_at").eq("load_id",loadId).order("created_at",{ascending:true});
- if(msgs.error){alert(msgs.error.message);return}
- let h='<span class="eyebrow">CHAT MOVELO</span><h2>'+esc(load.data.origin_area)+' → '+esc(load.data.destination_area)+'</h2><p class="modal-sub">Comunicación dentro de MOVELO. Los teléfonos siguen ocultos.</p><div class="chat-list">';
- h+=(msgs.data||[]).map(m=>'<div class="chat-msg '+(m.sender_id===u.id?'mine':'')+'"><span>'+esc(m.body)+'</span><small>'+new Date(m.created_at).toLocaleString()+'</small></div>').join("");
- h+='</div><form id="chatForm"><textarea name="body" rows="2" maxlength="1000" required placeholder="Escribe aquí…"></textarea><button class="primary submit">Enviar mensaje</button></form>';
- openModal(h);
- $("#chatForm").onsubmit=async e=>{e.preventDefault();const body=new FormData(e.target).get("body")?.toString().trim();if(!body)return;const r=await sb.from("messages").insert({load_id:loadId,sender_id:u.id,body});if(r.error){alert(r.error.message);return}chatBox(loadId)};
- const ch=sb.channel("movelo-chat-"+loadId).on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"load_id=eq."+loadId},()=>{if(!modal.hidden)chatBox(loadId)}).subscribe();
- setTimeout(()=>sb.removeChannel(ch),30000);
+ const renderMessages=async()=>{
+   const msgs=await sb.from("messages").select("id,sender_id,body,created_at").eq("load_id",loadId).order("created_at",{ascending:true});
+   if(msgs.error){alert(msgs.error.message);return}
+   const list=$("#chatList");
+   if(!list)return;
+   list.innerHTML=(msgs.data||[]).map(m=>'<div class="chat-msg '+(m.sender_id===u.id?'mine':'')+'"><span>'+esc(m.body)+'</span><small>'+new Date(m.created_at).toLocaleString()+'</small></div>').join("");
+   list.scrollTop=list.scrollHeight;
+ };
+ openModal('<span class="eyebrow">CHAT MOVELO</span><h2>'+esc(load.data.origin_area)+' → '+esc(load.data.destination_area)+'</h2><p class="modal-sub">Comunicación dentro de MOVELO. Los teléfonos siguen ocultos.</p><div id="chatList" class="chat-list"></div><form id="chatForm"><textarea name="body" rows="2" maxlength="1000" required placeholder="Escribe aquí…"></textarea><button class="primary submit">Enviar mensaje</button></form>');
+ await renderMessages();
+ $("#chatForm").onsubmit=async e=>{
+   e.preventDefault();
+   const body=new FormData(e.target).get("body")?.toString().trim();
+   if(!body)return;
+   const r=await sb.from("messages").insert({load_id:loadId,sender_id:u.id,body});
+   if(r.error){alert(r.error.message);return}
+   e.target.reset();
+   await renderMessages();
+ };
+ const ch=sb.channel("movelo-chat-"+loadId)
+   .on("postgres_changes",{event:"INSERT",schema:"public",table:"messages",filter:"load_id=eq."+loadId},()=>renderMessages())
+   .subscribe();
+ const closeWatcher=setInterval(()=>{if(modal.hidden){clearInterval(closeWatcher);sb.removeChannel(ch)}},1000);
 }
 async function carrierDashboard(){
  const u=await user();if(!u)return authForm("carrier");
@@ -77,7 +91,29 @@ function quoteForm(loadId){
  $("#quoteForm").onsubmit=async e=>{e.preventDefault();const u=await user(),d=Object.fromEntries(new FormData(e.target));const r=await sb.from("quotes").insert({load_id:loadId,carrier_id:u.id,amount:Number(d.amount),note:d.note||null,status:"pending"});if(r.error){alert(r.error.message);return}openModal('<div class="success"><div class="success-icon">✓</div><span class="eyebrow">ENVIADA</span><h2>Cotización enviada.</h2><p>El cliente la verá desde su cuenta. Su teléfono sigue protegido.</p><button class="primary submit" id="backLoads">Volver a cargas</button></div>');$("#backLoads").onclick=carrierLoads}
 }
 async function refresh(){
- const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});const g=$("#opportunityGrid");if(r.error){g.innerHTML='<div class="empty">No se pudo cargar la información.</div>';return}if(!r.data?.length){g.innerHTML='<div class="empty">No hay cargas reales todavía. Publica una para probar.</div>';return}g.innerHTML=r.data.map(l=>'<article class="opportunity"><div class="opp-head"><span class="pill">📦 '+esc(l.cargo_type)+'</span><span class="urgency">'+esc(l.urgency)+'</span></div><div class="opp-route"><strong>'+esc(l.origin_area)+'</strong><span>→</span><strong>'+esc(l.destination_area)+'</strong></div><div class="opp-meta"><span>⚖️ '+esc(l.quantity)+'</span><span>📅 '+esc(l.requested_date)+'</span></div><div class="opp-bottom"><span class="budget">'+(l.budget?"Presupuesto $"+Number(l.budget).toFixed(2):"Precio a cotizar")+'</span><span class="privacy">🔒 Contacto protegido</span></div></article>').join("")
+ const g=$("#opportunityGrid");if(!g)return;
+ const u=await user();
+ if(!u){g.innerHTML='<div class="empty">Inicia sesión como transportista para ver oportunidades abiertas.</div>';return}
+ const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});
+ if(r.error){g.innerHTML='<div class="empty">No se pudo cargar la información.</div>';return}
+ if(!r.data?.length){g.innerHTML='<div class="empty">No hay cargas reales todavía. Publica una para probar.</div>';return}
+ g.innerHTML=r.data.map(l=>'<article class="opportunity"><div class="opp-head"><span class="pill">📦 '+esc(l.cargo_type)+'</span><span class="urgency">'+esc(l.urgency)+'</span></div><div class="opp-route"><strong>'+esc(l.origin_area)+'</strong><span>→</span><strong>'+esc(l.destination_area)+'</strong></div><div class="opp-meta"><span>⚖️ '+esc(l.quantity)+'</span><span>📅 '+esc(l.requested_date)+'</span></div><div class="opp-bottom"><span class="budget">'+(l.budget!==null&&l.budget!==undefined?"Presupuesto $"+Number(l.budget).toFixed(2):"Precio a cotizar")+'</span><span class="privacy">🔒 Contacto protegido</span></div></article>').join("");
+}
+let liveChannel=null;
+function startLiveMarket(){
+ if(liveChannel)return;
+ const connect=async()=>{
+   const u=await user();
+   if(!u){if(liveChannel){sb.removeChannel(liveChannel);liveChannel=null}return}
+   if(liveChannel)return;
+   liveChannel=sb.channel("movelo-live-market")
+     .on("postgres_changes",{event:"*",schema:"public",table:"load_requests"},()=>refresh())
+     .on("postgres_changes",{event:"*",schema:"public",table:"quotes"},()=>refresh())
+     .subscribe();
+ };
+ connect();
+ setInterval(connect,5000);
+ setInterval(refresh,15000);
 }
 let liveChannel=null;
 function startLiveMarket(){
