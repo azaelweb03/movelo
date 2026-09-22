@@ -178,6 +178,44 @@ function startLiveMarket(){
  setInterval(connect,5000);
  setInterval(refresh,15000);
 }
+async function adminDashboard(){
+ const u=await user();
+ if(!u){return authForm("customer")}
+ const p=await myProfile();
+ if(p?.role!=="admin"){alert("Esta pantalla es solo para el administrador.");return}
+ const [profiles,loads,carriers,quotes,messages]=await Promise.all([
+   sb.from("profiles").select("id,full_name,role").order("full_name"),
+   sb.from("load_requests").select("id,customer_id,cargo_type,origin_area,destination_area,requested_date,quantity,urgency,status,created_at").order("created_at",{ascending:false}),
+   sb.from("carrier_profiles").select("id,vehicle_type,capacity,base_zone,verification_status,verified,return_alerts"),
+   sb.from("quotes").select("id,load_id,carrier_id,amount,status,created_at").order("created_at",{ascending:false}),
+   sb.from("messages").select("id,load_id,sender_id,body,created_at").order("created_at",{ascending:false})
+ ]);
+ const err=[profiles,loads,carriers,quotes,messages].find(x=>x.error);
+ if(err){alert(err.error.message);return}
+ const ps=profiles.data||[], ls=loads.data||[], cs=carriers.data||[], qs=quotes.data||[], ms=messages.data||[];
+ const nameById=new Map(ps.map(x=>[x.id,x.full_name||"Usuario"]));
+ let h='<span class="eyebrow">DUEÑO · ADMINISTRADOR</span><h2>Centro de Control MOVELO</h2><p class="modal-sub">Aquí tienes la visión completa de la plataforma. Esta información no se muestra a clientes ni transportistas.</p><div class="admin-stats"><div><strong>'+ps.length+'</strong><span>Usuarios</span></div><div><strong>'+ls.length+'</strong><span>Cargas</span></div><div><strong>'+cs.length+'</strong><span>Transportistas</span></div><div><strong>'+qs.length+'</strong><span>Cotizaciones</span></div><div><strong>'+ms.length+'</strong><span>Mensajes</span></div></div>';
+ h+='<div class="admin-block"><div class="section-head row"><div><span class="eyebrow">USUARIOS</span><h3>Usuarios registrados</h3></div></div><div class="admin-table">'+(ps.length?ps.map(x=>'<div class="admin-row"><b>'+esc(x.full_name)+'</b><span>'+esc(x.role)+'</span></div>').join(""):'<p class="empty">No hay usuarios.</p>')+'</div></div>';
+ h+='<div class="admin-block"><span class="eyebrow">CARGAS</span><h3>Todas las necesidades publicadas</h3><div class="admin-table">'+(ls.length?ls.slice(0,30).map(x=>'<div class="admin-row"><div><b>'+esc(x.cargo_type)+'</b><small>'+esc(nameById.get(x.customer_id)||"Usuario")+' · '+esc(x.origin_area)+' → '+esc(x.destination_area)+'</small></div><span>'+esc(x.status)+'</span></div>').join(""):'<p class="empty">No hay cargas.</p>')+'</div></div>';
+ h+='<div class="admin-block"><span class="eyebrow">TRANSPORTISTAS</span><h3>Flota registrada</h3><div class="admin-table">'+(cs.length?cs.map(x=>'<div class="admin-row"><div><b>'+esc(x.vehicle_type||"Transporte")+'</b><small>'+esc(x.base_zone||"Zona no indicada")+' · '+esc(x.capacity||"Capacidad no indicada")+'</small></div><span>'+esc(x.verification_status||"pending")+'</span></div>').join(""):'<p class="empty">No hay transportistas.</p>')+'</div></div>';
+ h+='<div class="admin-block"><span class="eyebrow">COTIZACIONES</span><h3>Actividad comercial</h3><div class="admin-table">'+(qs.length?qs.slice(0,30).map(x=>'<div class="admin-row"><div><b>
+ const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";await renderHeroAvailability();return}
+ const p=await myProfile();
+ box.innerHTML='<span>Sesión: <b>'+esc(u.email)+'</b> · '+esc(p?.role||"usuario")+'</span> <button id="logoutBtn" class="secondary small">Salir</button>';
+ $("#logoutBtn").onclick=async()=>{await sb.auth.signOut();render();refresh()};
+ $("#loginNav").textContent="Mi cuenta";await renderHeroAvailability();
+}
+async function start(role){const u=await user();if(!u){authForm(role);return}await profile(role);render();role==="customer"?loadForm():carrierDashboard()}
+$("#clientBtn").onclick=$("#clientBtn2").onclick=()=>start("customer");
+$("#carrierBtn").onclick=$("#carrierBtn2").onclick=()=>start("carrier");
+$("#loginNav").onclick=async()=>{const p=await myProfile();if(p?.role==="admin")adminDashboard();else if(p?.role==="customer")customerDashboard();else if(p?.role==="carrier")carrierOperations();else authForm("customer")};
+$("#refreshBtn").onclick=refresh;startLiveMarket();$("#menuBtn").onclick=()=>$(".nav").classList.toggle("show");
+sb.auth.onAuthStateChange(()=>setTimeout(render,0));refresh();render();
++Number(x.amount).toFixed(2)+'</b><small>'+esc(nameById.get(x.carrier_id)||"Transportista")+' · carga '+esc(x.load_id.slice(0,8))+'</small></div><span>'+esc(x.status)+'</span></div>').join(""):'<p class="empty">No hay cotizaciones.</p>')+'</div></div>';
+ h+='<button class="secondary submit" id="adminClose">Cerrar centro de control</button>';
+ openModal(h);$("#adminClose").onclick=closeModal;
+}
+
 async function render(){
  const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";await renderHeroAvailability();return}
  const p=await myProfile();
