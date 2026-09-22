@@ -3,6 +3,20 @@ const SUPABASE_KEY="sb_publishable_w9BdB54lL2TSiJYs_QjtFw_1Rb_V6ZK";
 const sb=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=s=>document.querySelector(s), modal=$("#modalBackdrop"), content=$("#modalContent");
 const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]));
+const CONFIDENTIAL_MSG="No se pueden enviar números de teléfono ni datos confidenciales. Los números de 7 o más cifras no están permitidos.";
+function hasBlockedNumber(v){
+ const s=String(v??"");
+ if(/\d{7,}/.test(s))return true;
+ const groups=s.match(/\d(?:[\s.-]?\d){6,}/g)||[];
+ return groups.some(x=>x.replace(/\D/g,"").length>=7);
+}
+function validatePublicText(values){
+ return Object.values(values||{}).some(v=>hasBlockedNumber(v));
+}
+function rejectConfidentialData(){
+ alert(CONFIDENTIAL_MSG);
+ return false;
+}
 const openModal=h=>{content.innerHTML=h;modal.hidden=false},closeModal=()=>{modal.hidden=true;content.innerHTML=""};
 $("#closeModal").onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};
 async function user(){return (await sb.auth.getUser()).data.user}
@@ -32,7 +46,7 @@ function loadForm(){
    details.innerHTML=h;
  };
  type.onchange=renderDetails;
- $('#loadForm').onsubmit=async e=>{e.preventDefault();const u=await user(),d=Object.fromEntries(new FormData(e.target));const move=d.move_type;const cargo=move==='persona'?'Personas':move==='animal'?'Animal':move==='mudanza'?'Mudanza / acarreo':(d.cargo_detail||'Carga');const quantity=move==='persona'?(d.people_count+' persona(s)'):move==='animal'?(d.animal_count+' animal(es)'):d.quantity;const r=await sb.from("load_requests").insert({customer_id:u.id,move_type:move,cargo_type:cargo,origin_area:d.origin,destination_area:d.destination,requested_date:d.pickup_date,quantity,urgency:(d.urgency||"normal").toLowerCase(),budget:d.budget?Number(d.budget):null,notes:d.notes||null,loading_help:d.loading_help||null,cargo_detail:d.cargo_detail||null,special_requirements:d.special_requirements||null,status:"open"});if(r.error){alert(r.error.message);return}openModal('<div class="success"><div class="success-icon">✓</div><span class="eyebrow">PUBLICADA</span><h2>Tu necesidad ya está en MOVELO.</h2><p>Ahora los transportistas pueden verla y cotizar.</p><button class="primary submit" id="ok">Ver mis cargas</button></div>');$('#ok').onclick=customerDashboard;refresh()};
+ $('#loadForm').onsubmit=async e=>{e.preventDefault();const u=await user(),d=Object.fromEntries(new FormData(e.target));if(validatePublicText({origin:d.origin,destination:d.destination,quantity:d.quantity,notes:d.notes,cargo_detail:d.cargo_detail,special_requirements:d.special_requirements}))return rejectConfidentialData();const move=d.move_type;const cargo=move==='persona'?'Personas':move==='animal'?'Animal':move==='mudanza'?'Mudanza / acarreo':(d.cargo_detail||'Carga');const quantity=move==='persona'?(d.people_count+' persona(s)'):move==='animal'?(d.animal_count+' animal(es)'):d.quantity;const r=await sb.from("load_requests").insert({customer_id:u.id,move_type:move,cargo_type:cargo,origin_area:d.origin,destination_area:d.destination,requested_date:d.pickup_date,quantity,urgency:(d.urgency||"normal").toLowerCase(),budget:d.budget?Number(d.budget):null,notes:d.notes||null,loading_help:d.loading_help||null,cargo_detail:d.cargo_detail||null,special_requirements:d.special_requirements||null,status:"open"});if(r.error){alert(r.error.message);return}openModal('<div class="success"><div class="success-icon">✓</div><span class="eyebrow">PUBLICADA</span><h2>Tu necesidad ya está en MOVELO.</h2><p>Ahora los transportistas pueden verla y cotizar.</p><button class="primary submit" id="ok">Ver mis cargas</button></div>');$('#ok').onclick=customerDashboard;refresh()};
 }
 async function customerDashboard(){
  const u=await user();if(!u)return authForm("customer");const r=await sb.from("load_requests").select("*").eq("customer_id",u.id).order("created_at",{ascending:false});if(r.error){alert(r.error.message);return}
@@ -58,6 +72,7 @@ async function chatBox(loadId){
    e.preventDefault();
    const body=new FormData(e.target).get("body")?.toString().trim();
    if(!body)return;
+   if(hasBlockedNumber(body))return rejectConfidentialData();
    const r=await sb.from("messages").insert({load_id:loadId,sender_id:u.id,body});
    if(r.error){alert(r.error.message);return}
    e.target.reset();
@@ -81,7 +96,7 @@ async function uploadCarrierPhoto(file, kind, userId){
 async function carrierDashboard(){
  const u=await user();if(!u)return authForm("carrier");
  openModal('<span class="eyebrow">TRANSPORTISTA · PERFIL</span><h2>Cuéntanos qué tienes para trabajar.</h2><p class="modal-sub">Por seguridad, necesitamos una foto clara de tu cara y una foto del vehículo o maquinaria que utilizas.</p><form id="carrierForm"><label>Foto de tu cara <input name="face_photo" type="file" accept="image/*" capture="user" required></label><label>Foto del vehículo / maquinaria <input name="vehicle_photo" type="file" accept="image/*" capture="environment" required></label><label>¿Qué tienes para trabajar?<select name="vehicle_type" required><option value="">Elige</option><option>Carro</option><option>Pickup</option><option>Panel / furgón</option><option>Camión</option><option>Camión refrigerado</option><option>Mula / tractocamión</option><option>Plataforma</option><option>Grúa</option><option>Moto</option><option>Bus / transporte de personas</option><option>Retroexcavadora</option><option>Bulldozer / cuchilla</option><option>Tractor agrícola</option><option>Cosechadora / maquinaria agrícola</option><option>Montacargas</option><option>Otra maquinaria terrestre</option></select></label><div class="two"><label>Capacidad<input name="capacity" placeholder="Ej. 2,000 kg"></label><label>Zona base<input name="base_zone" placeholder="Ej. Penonomé"></label></div><label>Servicios que puedes ofrecer<input name="service_types" placeholder="Ej. carga, mudanza, acarreo, trabajo agrícola"></label><label>Describe tu vehículo o maquinaria<input name="vehicle_description" placeholder="Marca, modelo, capacidad o implementos"></label><label>Tipos de carga que manejas<input name="cargo_types" placeholder="Ej. agrícola, seca, animales, mudanza"></label><label>¿Quieres recibir oportunidades de retorno?<select name="return_alerts"><option value="true">Sí</option><option value="false">No por ahora</option></select></label><button class="primary submit">Guardar perfil y ver oportunidades →</button><small class="form-note">🔒 Las fotos no muestran tu teléfono. El perfil queda pendiente de verificación.</small></form>');
- $("#carrierForm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));try{const face=await uploadCarrierPhoto(d.face_photo,"face",u.id);const vehicle=await uploadCarrierPhoto(d.vehicle_photo,"vehicle",u.id);const r=await sb.from("carrier_profiles").upsert({id:u.id,vehicle_type:d.vehicle_type,capacity:d.capacity,base_zone:d.base_zone,cargo_types:(d.cargo_types||"").split(",").map(x=>x.trim()).filter(Boolean),service_types:(d.service_types||"").split(",").map(x=>x.trim()).filter(Boolean),vehicle_description:d.vehicle_description||null,face_photo_path:face,vehicle_photo_path:vehicle,verification_status:"pending",return_alerts:d.return_alerts==="true"});if(r.error)throw r.error;carrierLoads()}catch(err){alert(err.message||"No se pudieron guardar las fotos y el perfil.")}}
+ $("#carrierForm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));if(validatePublicText({capacity:d.capacity,base_zone:d.base_zone,service_types:d.service_types,vehicle_description:d.vehicle_description,cargo_types:d.cargo_types}))return rejectConfidentialData();try{const face=await uploadCarrierPhoto(d.face_photo,"face",u.id);const vehicle=await uploadCarrierPhoto(d.vehicle_photo,"vehicle",u.id);const r=await sb.from("carrier_profiles").upsert({id:u.id,vehicle_type:d.vehicle_type,capacity:d.capacity,base_zone:d.base_zone,cargo_types:(d.cargo_types||"").split(",").map(x=>x.trim()).filter(Boolean),service_types:(d.service_types||"").split(",").map(x=>x.trim()).filter(Boolean),vehicle_description:d.vehicle_description||null,face_photo_path:face,vehicle_photo_path:vehicle,verification_status:"pending",return_alerts:d.return_alerts==="true"});if(r.error)throw r.error;carrierLoads()}catch(err){alert(err.message||"No se pudieron guardar las fotos y el perfil.")}}
 }
 async function carrierOperations(){
  const u=await user();if(!u)return authForm("carrier");
@@ -100,7 +115,7 @@ async function carrierOperations(){
  $("#openLoads").onclick=carrierLoads;
  document.querySelectorAll(".chatBtn").forEach(b=>b.onclick=()=>chatBox(b.dataset.load));
 }
-async function opportunityDetails(loadId){ const r=await sb.from("load_requests").select("*").eq("id",loadId).maybeSingle(); if(r.error||!r.data){alert(r.error?.message||"Oportunidad no encontrada");return} const l=r.data; openModal('<span class="eyebrow">OPORTUNIDAD MOVELO</span><h2>'+esc(l.origin_area)+' → '+esc(l.destination_area)+'</h2><p>'+esc(l.cargo_type)+' · '+esc(l.quantity)+' · '+esc(l.requested_date)+' · '+esc(l.urgency)+'</p><p>'+esc(l.notes||"Sin detalles adicionales.")+'</p><p>🔒 Contacto protegido.</p><button class="primary submit" id="quoteFromOpp">Cotizar esta oportunidad →</button>'); $("#quoteFromOpp").onclick=()=>quoteForm(loadId); }
+async function opportunityDetails(loadId){ const r=await sb.from("load_requests").select("*").eq("id",loadId).maybeSingle(); if(r.error||!r.data){alert(r.error?.message||"Oportunidad no encontrada");return} const l=r.data;if(validatePublicText({origin:l.origin_area,destination:l.destination_area,quantity:l.quantity,notes:l.notes,cargo_detail:l.cargo_detail,special_requirements:l.special_requirements}))return rejectConfidentialData(); openModal('<span class="eyebrow">OPORTUNIDAD MOVELO</span><h2>'+esc(l.origin_area)+' → '+esc(l.destination_area)+'</h2><p>'+esc(l.cargo_type)+' · '+esc(l.quantity)+' · '+esc(l.requested_date)+' · '+esc(l.urgency)+'</p><p>'+esc(l.notes||"Sin detalles adicionales.")+'</p><p>🔒 Contacto protegido.</p><button class="primary submit" id="quoteFromOpp">Cotizar esta oportunidad →</button>'); $("#quoteFromOpp").onclick=()=>quoteForm(loadId); }
 async function carrierLoads(){
  const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});if(r.error){alert(r.error.message);return}
  let h='<span class="eyebrow">TRANSPORTISTA</span><h2>Cargas abiertas</h2><p class="modal-sub">No ves teléfonos. Solo la información necesaria para cotizar.</p><div class="dashboard">';
@@ -110,7 +125,7 @@ async function carrierLoads(){
 }
 function quoteForm(loadId){
  openModal('<span class="eyebrow">COTIZACIÓN</span><h2>¿Cuánto cobras por este viaje?</h2><form id="quoteForm"><label>Precio<input name="amount" type="number" step="0.01" required placeholder="Ej. 200"></label><label>Mensaje (opcional)<textarea name="note" rows="3" placeholder="Horario, condiciones, etc."></textarea></label><button class="primary submit">Enviar cotización →</button><small class="form-note">🔒 Tu teléfono no se comparte.</small></form>');
- $("#quoteForm").onsubmit=async e=>{e.preventDefault();const u=await user(),d=Object.fromEntries(new FormData(e.target));const r=await sb.from("quotes").insert({load_id:loadId,carrier_id:u.id,amount:Number(d.amount),note:d.note||null,status:"pending"});if(r.error){alert(r.error.message);return}openModal('<div class="success"><div class="success-icon">✓</div><span class="eyebrow">ENVIADA</span><h2>Cotización enviada.</h2><p>El cliente la verá desde su cuenta. Su teléfono sigue protegido.</p><button class="primary submit" id="backLoads">Volver a cargas</button></div>');$("#backLoads").onclick=carrierLoads}
+ $("#quoteForm").onsubmit=async e=>{e.preventDefault();const u=await user(),d=Object.fromEntries(new FormData(e.target));if(validatePublicText({note:d.note}))return rejectConfidentialData();const r=await sb.from("quotes").insert({load_id:loadId,carrier_id:u.id,amount:Number(d.amount),note:d.note||null,status:"pending"});if(r.error){alert(r.error.message);return}openModal('<div class="success"><div class="success-icon">✓</div><span class="eyebrow">ENVIADA</span><h2>Cotización enviada.</h2><p>El cliente la verá desde su cuenta. Su teléfono sigue protegido.</p><button class="primary submit" id="backLoads">Volver a cargas</button></div>');$("#backLoads").onclick=carrierLoads}
 }
 async function refresh(){
  const g=$("#opportunityGrid");if(!g)return;
