@@ -16,3 +16,5 @@
 .admin-row:last-child{border-bottom:0}
 .admin-row small{display:block;color:#6b7280;margin-top:3px}
 @media(max-width:700px){.admin-stats{grid-template-columns:repeat(2,1fr)}.admin-row{align-items:flex-start;flex-direction:column}}
+
+.auction-rule{padding:12px;border:1px dashed #cfd9de;border-radius:12px;background:#f7fafb;color:#586973;font-size:12px}.auction-open{color:#24854a;font-weight:800}.auction-closed{color:#b14e47;font-weight:800}.my-offer{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:12px;background:#f5f8fa;border-radius:12px;margin-top:12px}.my-offer span{color:#64737d;font-size:12px}.quote-actions{display:flex;align-items:center;gap:8px}.completion-box{margin-top:14px;padding:14px;border-radius:14px;background:#f5f8fa}.completion-box p{margin:5px 0 10px;color:#667481;font-size:13px}.unread{border-left:4px solid var(--brand)}
