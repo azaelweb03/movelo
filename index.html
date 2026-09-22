@@ -11,11 +11,62 @@
 <main>
 <section class="hero"><div class="hero-copy"><span class="eyebrow">MOVELO · TRANSPORTE MÁS FÁCIL</span><h1>Mueve lo que<br><span>necesitas.</span></h1><p>Cuéntanos qué necesitas mover y te ayudamos a conseguir transporte. Si tienes un vehículo, te ayudamos a encontrar carga y aprovechar mejor tus viajes.</p><div class="hero-actions"><button class="primary big" id="clientBtn">👤 Necesito mover algo</button><button class="secondary big" id="carrierBtn">🚚 Tengo transporte</button></div><div class="trust"><span>✓ Contactos protegidos</span><span>✓ Cotizaciones reales</span><span>✓ Oportunidades de retorno</span></div><div id="sessionBox" class="session-box"></div></div>
 <div class="hero-card" id="heroAvailability"><div class="mini-top"><span class="live-dot"></span> DISPONIBILIDAD</div><div class="availability-empty"><strong>Tu disponibilidad aparecerá aquí.</strong><span>Regístrate como transportista para ver y gestionar tus propias oportunidades.</span></div></div></section>
-<section class="section" id="como-funciona"><div class="section-head"><span class="eyebrow">TE AYUDAMOS</span><h2>Mover algo puede ser más fácil.</h2><p>Cuéntanos qué necesitas. MOVELO te ayuda a encontrar una opción de transporte y mantener todo organizado.</p></div><div class="role-grid"><article class="role-card"><div class="role-icon">📦</div><span class="role-tag">NECESITO TRANSPORTE</span><h3>¿Necesitas mover algo?</h3><p>Persona, animal, carga o mudanza. Dinos qué vas a mover, de dónde sale y hacia dónde va.</p><button class="link-button" id="clientBtn2">Te ayudamos a moverlo →</button></article><article class="role-card"><div class="role-icon">🚚</div><span class="role-tag">TENGO TRANSPORTE</span><h3>¿Tienes un vehículo?</h3><p>Muéstranos qué puedes transportar y te ayudamos a encontrar cargas que se ajusten a tu vehículo y ruta.</p><button class="link-button" id="carrierBtn2">Te ayudamos a conseguir carga →</button></article></div></section>
-<section class="section" id="paneles"><div class="section-head"><span class="eyebrow">TU MOVELO</span><h2>Todo en un solo lugar.</h2><p>Entra para gestionar tus solicitudes, oportunidades y operaciones.</p></div><div class="role-grid"><article class="role-card"><div class="role-icon">🚚</div><span class="role-tag">TRANSPORTISTA</span><h3>Panel del Transportista</h3><p>Encuentra cargas, presenta ofertas y lleva tus operaciones desde un solo lugar.</p><button class="primary small" id="carrierBtn3">Entrar como transportista</button></article><article class="role-card"><div class="role-icon">📦</div><span class="role-tag">CLIENTE</span><h3>Panel del Cliente</h3><p>Publica lo que necesitas mover, recibe ofertas y elige la opción que mejor se ajuste a ti.</p><button class="primary small" id="clientBtn3">Necesito un transporte</button></article></div></section><section class="section soft" id="oportunidades"><div class="section-head row"><div><span class="eyebrow">CARGAS ABIERTAS</span><h2>Oportunidades disponibles</h2></div><button class="secondary" id="refreshBtn">Actualizar</button></div><div id="opportunityGrid" class="opportunity-grid"><div class="loading">Cargando oportunidades…</div></div></section>
+<section class="section movelo-guide" id="como-funciona">
+<div class="section-head guide-head"><span class="eyebrow">TE AYUDAMOS</span><h2>¿Qué quieres hacer?</h2><p>MOVELO te acompaña paso a paso. Toca la opción que te interese.</p></div>
+<div class="guide-carousel" id="guideCarousel">
+  <button class="guide-arrow prev" id="guidePrev" aria-label="Anterior">‹</button>
+  <div class="guide-track" id="guideTrack">
+    <article class="guide-slide active">
+      <div class="guide-visual">📦</div><div><span class="role-tag">NECESITO TRANSPORTE</span><h3>¿Necesitas mover algo?</h3><p>Dinos qué vas a mover, de dónde sale y hacia dónde va. Recibirás ofertas y tú eliges.</p><button class="primary small guide-action" data-role="customer">Te ayudamos a moverlo →</button></div>
+    </article>
+    <article class="guide-slide">
+      <div class="guide-visual">🚚</div><div><span class="role-tag">TENGO TRANSPORTE</span><h3>¿Tienes un vehículo?</h3><p>Muéstranos qué puedes transportar y encuentra cargas que se ajusten a tu vehículo y tus rutas.</p><button class="primary small guide-action" data-role="carrier">Te ayudamos a conseguir carga →</button></div>
+    </article>
+    <article class="guide-slide">
+      <div class="guide-visual">🔄</div><div><span class="role-tag">APROVECHA EL VIAJE</span><h3>¿Vas de regreso?</h3><p>MOVELO busca conectar cargas de ida y regreso para ayudarte a aprovechar mejor cada viaje.</p><button class="secondary small guide-action" data-role="carrier">Buscar una carga →</button></div>
+    </article>
+    <article class="guide-slide">
+      <div class="guide-visual">🔒</div><div><span class="role-tag">CONTACTO PROTEGIDO</span><h3>Todo más organizado.</h3><p>Las conversaciones se mantienen dentro de MOVELO y los teléfonos no se publican.</p><button class="secondary small guide-info" type="button">Así funciona MOVELO →</button></div>
+    </article>
+  </div>
+  <button class="guide-arrow next" id="guideNext" aria-label="Siguiente">›</button>
+</div>
+<div class="guide-dots" id="guideDots" aria-label="Seleccionar información"></div>
+</section><section class="section soft" id="oportunidades"><div class="section-head row"><div><span class="eyebrow">CARGAS ABIERTAS</span><h2>Oportunidades disponibles</h2></div><button class="secondary" id="refreshBtn">Actualizar</button></div><div id="opportunityGrid" class="opportunity-grid"><div class="loading">Cargando oportunidades…</div></div></section>
 <section class="section"><div class="simple-banner"><div><span class="eyebrow">RETORNOS</span><h2>Que el camión no vuelva vacío.</h2><p>La idea de MOVELO: conectar necesidades de ida y regreso.</p></div><div class="return-route"><span>🚚</span><strong>Penonomé → Panamá</strong><span>↔</span><strong>Panamá → Penonomé</strong></div></div></section>
 </main>
 <footer><div><strong>MOVELO</strong><span>Mueve lo que necesitas.</span></div><small>MOVELO · Transporte más fácil, organizado y conectado.</small></footer>
 <div class="modal-backdrop" id="modalBackdrop" hidden><div class="modal" role="dialog" aria-modal="true"><button class="close" id="closeModal">×</button><div id="modalContent"></div></div></div>
+<style>
+.movelo-guide{padding-top:45px}.guide-head{margin-bottom:22px}.guide-carousel{position:relative;display:flex;align-items:center;gap:10px}.guide-track{width:100%;overflow:hidden}.guide-slide{display:none;min-height:220px;padding:30px 70px;border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:var(--shadow);grid-template-columns:120px 1fr;align-items:center;gap:30px;cursor:pointer}.guide-slide.active{display:grid}.guide-visual{width:100px;height:100px;border-radius:28px;background:var(--soft);display:grid;place-items:center;font-size:52px}.guide-slide h3{font-size:30px;margin:7px 0 8px}.guide-slide p{color:var(--muted);max-width:650px;margin:0 0 18px}.guide-arrow{width:42px;height:42px;flex:0 0 42px;border:1px solid var(--line);background:#fff;color:var(--brand);border-radius:50%;font-size:30px;line-height:1}.guide-arrow:hover{background:var(--soft)}.guide-dots{display:flex;justify-content:center;gap:7px;margin-top:15px}.guide-dot{width:8px;height:8px;border:0;border-radius:50%;padding:0;background:#cbd4d9}.guide-dot.active{width:24px;border-radius:8px;background:var(--brand)}@media(max-width:650px){.guide-slide{min-height:280px;padding:28px 24px;grid-template-columns:1fr;gap:18px;text-align:center}.guide-visual{margin:auto}.guide-slide p{margin-left:auto;margin-right:auto}.guide-arrow{width:36px;height:36px;flex-basis:36px;font-size:26px}.guide-action,.guide-info{width:100%}}
+</style>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="app.js"></script>
+<script>
+(function(){
+  function initGuide(){
+    const slides=[...document.querySelectorAll(".guide-slide")], dots=document.querySelector("#guideDots");
+    if(!slides.length||!dots)return;
+    let i=0,timer;
+    dots.innerHTML=slides.map((_,n)=>'<button class="guide-dot '+(n===0?'active':'')+'" aria-label="Mostrar información '+(n+1)+'"></button>').join("");
+    const dotEls=[...dots.children];
+    function show(n){
+      i=(n+slides.length)%slides.length;
+      slides.forEach((s,k)=>s.classList.toggle("active",k===i));
+      dotEls.forEach((d,k)=>d.classList.toggle("active",k===i));
+    }
+    function restart(){clearInterval(timer);timer=setInterval(()=>show(i+1),5500)}
+    document.querySelector("#guidePrev")?.addEventListener("click",()=>{show(i-1);restart()});
+    document.querySelector("#guideNext")?.addEventListener("click",()=>{show(i+1);restart()});
+    dotEls.forEach((d,k)=>d.addEventListener("click",()=>{show(k);restart()}));
+    slides.forEach(s=>s.addEventListener("click",e=>{
+      const b=e.target.closest(".guide-action"); if(!b)return;
+      const role=b.dataset.role;
+      if(role==="customer")window.start?.("customer");
+      if(role==="carrier")window.start?.("carrier");
+    }));
+    restart();
+  }
+  if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",initGuide);else initGuide();
+})();
+</script>
 </body></html>
