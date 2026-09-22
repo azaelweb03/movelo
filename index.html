@@ -61,8 +61,8 @@
     slides.forEach(s=>s.addEventListener("click",e=>{
       const b=e.target.closest(".guide-action"); if(!b)return;
       const role=b.dataset.role;
-      if(role==="customer")window.start?.("customer");
-      if(role==="carrier")window.start?.("carrier");
+      if(role==="customer")document.querySelector("#clientBtn")?.click();
+      if(role==="carrier")document.querySelector("#carrierBtn")?.click();
     }));
     restart();
   }
