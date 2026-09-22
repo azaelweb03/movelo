@@ -1,17 +1,31 @@
 # MOVELO
 
-## MVP nuevo
+## MVP de prueba
 
-MOVELO es un marketplace de intermediación de transporte.
+MOVELO es un marketplace de intermediación de transporte terrestre.
 
-### Flujo definido
-Cliente publica una necesidad → MOVELO filtra oportunidades → transportistas compatibles reciben/ven la carga → cotizan → el cliente compara → MOVELO mantiene la operación organizada.
+### Flujo de prueba
 
-### Regla de intermediación
-Los datos de contacto directo no se muestran al publicar una carga. La comunicación y los datos operativos deben pasar por MOVELO.
+Cliente publica una necesidad → MOVELO la muestra a transportistas compatibles → cada transportista puede enviar **una oferta** → la subasta cierra a la medianoche del día anterior al viaje → el cliente elige una oferta → se abre un **chat privado** entre cliente y transportista seleccionado → se marca la operación como completada → ambas partes pueden dejar una evaluación.
 
-### Esta versión
-Es un prototipo web navegable y de prueba. Usa datos DEMO y localStorage para simular publicación de cargas y registro de transportistas. Todavía no tiene base de datos, autenticación, notificaciones reales, mapas, pagos ni matching de producción.
+### Protección de contacto
 
-### Próximo paso técnico
-Conectar autenticación + base de datos + API de solicitudes/cotizaciones + notificaciones. Luego desplegar el MVP real.
+MOVELO no permite publicar números de teléfono ni secuencias numéricas de 7 o más cifras en los campos protegidos. La comunicación se mantiene dentro de MOVELO.
+
+### Roles
+
+- **Cliente:** publica necesidades y recibe/compara ofertas.
+- **Transportista:** configura su perfil, ve oportunidades abiertas y presenta ofertas.
+- **Administrador:** acceso privado al Centro de Control; no se muestra como opción pública.
+
+### Seguridad y datos
+
+La aplicación usa Supabase para autenticación, base de datos, RLS, tiempo real y almacenamiento privado de fotos de transportistas.
+
+### Estado actual
+
+Esta versión es un **MVP funcional de beta cerrada**. La base de datos y las reglas principales ya están conectadas. Antes de una salida pública todavía deben validarse en pruebas reales: autenticación, publicación, ofertas, cierre de subasta, aceptación, chat privado, finalización, evaluaciones, fotos y experiencia móvil.
+
+### Importante
+
+No considerar esta versión como una plataforma de transporte pública o de producción masiva todavía. Primero se prueba con un grupo pequeño de usuarios controlados y se corrigen los problemas encontrados.
