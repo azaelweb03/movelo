@@ -19,7 +19,8 @@ function rejectConfidentialData(){
 }
 const openModal=h=>{content.innerHTML=h;modal.hidden=false},closeModal=()=>{modal.hidden=true;content.innerHTML=""};
 $("#closeModal").onclick=closeModal;modal.onclick=e=>{if(e.target===modal)closeModal()};
-function fmtDate(d){return d?new Date(d).toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"}):"—"}function fmtMoney(n){return n==null?"—":"$"+Number(n).toFixed(2)}function auctionClosed(l){return !!l.auction_close_at&&new Date(l.auction_close_at)<=new Date()}function closeText(l){return l.auction_close_at?"Cierra: "+fmtDate(l.auction_close_at):"Cierre pendiente"}\nasync function user(){return (await sb.auth.getUser()).data.user}
+function fmtDate(d){return d?new Date(d).toLocaleString("es-PA",{dateStyle:"short",timeStyle:"short"}):"—"}function fmtMoney(n){return n==null?"—":"$"+Number(n).toFixed(2)}function auctionClosed(l){return !!l.auction_close_at&&new Date(l.auction_close_at)<=new Date()}function closeText(l){return l.auction_close_at?"Cierra: "+fmtDate(l.auction_close_at):"Cierre pendiente"}
+async function user(){return (await sb.auth.getUser()).data.user}
 async function profile(role){
  const u=await user();if(!u)return null;
  let {data:p}=await sb.from("profiles").select("*").eq("id",u.id).maybeSingle();
