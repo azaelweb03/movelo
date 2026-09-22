@@ -28,6 +28,30 @@ async function profile(role){
  return p
 }
 async function myProfile(){const u=await user();if(!u)return null;return (await sb.from("profiles").select("*").eq("id",u.id).maybeSingle()).data}
+async function renderHeroAvailability(){
+ const box=$("#heroAvailability"); if(!box)return;
+ const u=await user();
+ if(!u){
+   box.innerHTML='<div class="mini-top"><span class="live-dot"></span> MOVELO</div><div class="availability-empty"><strong>Tu información aparecerá aquí.</strong><span>Entra como cliente o transportista para ver únicamente tus propios datos.</span></div>';
+   return;
+ }
+ const p=await myProfile();
+ if(p?.role==="customer"){
+   const r=await sb.from("load_requests").select("cargo_type,origin_area,destination_area,requested_date,quantity,urgency,status").eq("customer_id",u.id).order("created_at",{ascending:false}).limit(1);
+   const l=r.data?.[0];
+   box.innerHTML=l
+    ? '<div class="mini-top"><span class="live-dot"></span> MI SOLICITUD</div><div class="availability-empty"><strong>'+esc(l.cargo_type)+' · '+esc(l.origin_area)+' → '+esc(l.destination_area)+'</strong><span>'+esc(l.quantity)+' · '+esc(l.requested_date)+' · '+esc(l.urgency)+' · '+esc(l.status)+'</span></div>'
+    : '<div class="mini-top"><span class="live-dot"></span> MI MOVELO</div><div class="availability-empty"><strong>No tienes solicitudes activas.</strong><span>Aquí aparecerá tu propia solicitud cuando publiques una.</span></div>';
+   return;
+ }
+ if(p?.role==="carrier"){
+   const r=await sb.from("carrier_profiles").select("vehicle_type,capacity,base_zone,service_types,return_alerts,verification_status").eq("id",u.id).maybeSingle();
+   const x=r.data;
+   box.innerHTML=x
+    ? '<div class="mini-top"><span class="live-dot"></span> MI DISPONIBILIDAD</div><div class="availability-empty"><strong>'+esc(x.vehicle_type||"Transporte")+' · '+esc(x.base_zone||"Zona no indicada")+'</strong><span>'+esc(x.capacity||"Capacidad no indicada")+' · '+esc((x.service_types||[]).join(", ")||"Servicios por definir")+' · Retornos: '+(x.return_alerts?"Sí":"No")+'</span></div>'
+    : '<div class="mini-top"><span class="live-dot"></span> MI DISPONIBILIDAD</div><div class="availability-empty"><strong>Aún no tienes disponibilidad configurada.</strong><span>Completa tu perfil de transportista para aparecer aquí.</span></div>';
+ }
+}
 function authForm(role){
  openModal('<span class="eyebrow">ENTRAR A MOVELO</span><h2>'+ (role==="customer"?"Publicar una carga":"Encontrar cargas")+'</h2><p class="modal-sub">Crea una cuenta de prueba o entra con una existente.</p><form id="authForm"><label>Correo<input name="email" type="email" required placeholder="tu@email.com"></label><label>Contraseña<input name="password" type="password" minlength="6" required placeholder="Mínimo 6 caracteres"></label><div class="two"><button class="secondary" type="button" id="signupBtn">Crear cuenta</button><button class="primary" type="submit">Entrar</button></div><small class="form-note" id="authMsg">🔒 Tu teléfono no se muestra al otro usuario.</small></form>');
  $("#signupBtn").onclick=async()=>{const d=Object.fromEntries(new FormData($("#authForm")));const r=await sb.auth.signUp({email:d.email,password:d.password});$("#authMsg").textContent=r.error?r.error.message:(r.data.session?"Cuenta creada.":"Cuenta creada. Revisa tu correo para confirmar y luego entra.")};
@@ -130,7 +154,8 @@ function quoteForm(loadId){
 async function refresh(){
  const g=$("#opportunityGrid");if(!g)return;
  const u=await user();
- if(!u){g.innerHTML='<div class="empty">Inicia sesión como transportista para ver oportunidades abiertas.</div>';return}
+ const p=u?await myProfile():null;
+ if(!u||p?.role!=="carrier"){g.innerHTML='<div class="empty">Esta sección es para transportistas. Entra como transportista para ver oportunidades abiertas.</div>';return}
  const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});
  if(r.error){g.innerHTML='<div class="empty">No se pudo cargar la información.</div>';return}
  if(!r.data?.length){g.innerHTML='<div class="empty">No hay cargas reales todavía. Publica una para probar.</div>';return}
@@ -154,11 +179,11 @@ function startLiveMarket(){
  setInterval(refresh,15000);
 }
 async function render(){
- const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";return}
+ const u=await user(),box=$("#sessionBox");if(!u){box.innerHTML="";$("#loginNav").textContent="Entrar";await renderHeroAvailability();return}
  const p=await myProfile();
  box.innerHTML='<span>Sesión: <b>'+esc(u.email)+'</b> · '+esc(p?.role||"usuario")+'</span> <button id="logoutBtn" class="secondary small">Salir</button>';
  $("#logoutBtn").onclick=async()=>{await sb.auth.signOut();render();refresh()};
- $("#loginNav").textContent="Mi cuenta";
+ $("#loginNav").textContent="Mi cuenta";await renderHeroAvailability();
 }
 async function start(role){const u=await user();if(!u){authForm(role);return}await profile(role);render();role==="customer"?loadForm():carrierDashboard()}
 $("#clientBtn").onclick=$("#clientBtn2").onclick=()=>start("customer");
