@@ -79,6 +79,7 @@ async function carrierOperations(){
  $("#openLoads").onclick=carrierLoads;
  document.querySelectorAll(".chatBtn").forEach(b=>b.onclick=()=>chatBox(b.dataset.load));
 }
+async function opportunityDetails(loadId){ const r=await sb.from("load_requests").select("*").eq("id",loadId).maybeSingle(); if(r.error||!r.data){alert(r.error?.message||"Oportunidad no encontrada");return} const l=r.data; openModal('<span class="eyebrow">OPORTUNIDAD MOVELO</span><h2>'+esc(l.origin_area)+' → '+esc(l.destination_area)+'</h2><p>'+esc(l.cargo_type)+' · '+esc(l.quantity)+' · '+esc(l.requested_date)+' · '+esc(l.urgency)+'</p><p>'+esc(l.notes||"Sin detalles adicionales.")+'</p><p>🔒 Contacto protegido.</p><button class="primary submit" id="quoteFromOpp">Cotizar esta oportunidad →</button>'); $("#quoteFromOpp").onclick=()=>quoteForm(loadId); }
 async function carrierLoads(){
  const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});if(r.error){alert(r.error.message);return}
  let h='<span class="eyebrow">TRANSPORTISTA</span><h2>Cargas abiertas</h2><p class="modal-sub">No ves teléfonos. Solo la información necesaria para cotizar.</p><div class="dashboard">';
@@ -97,7 +98,8 @@ async function refresh(){
  const r=await sb.from("load_requests").select("*").eq("status","open").order("created_at",{ascending:false});
  if(r.error){g.innerHTML='<div class="empty">No se pudo cargar la información.</div>';return}
  if(!r.data?.length){g.innerHTML='<div class="empty">No hay cargas reales todavía. Publica una para probar.</div>';return}
- g.innerHTML=r.data.map(l=>'<article class="opportunity"><div class="opp-head"><span class="pill">📦 '+esc(l.cargo_type)+'</span><span class="urgency">'+esc(l.urgency)+'</span></div><div class="opp-route"><strong>'+esc(l.origin_area)+'</strong><span>→</span><strong>'+esc(l.destination_area)+'</strong></div><div class="opp-meta"><span>⚖️ '+esc(l.quantity)+'</span><span>📅 '+esc(l.requested_date)+'</span></div><div class="opp-bottom"><span class="budget">'+(l.budget!==null&&l.budget!==undefined?"Presupuesto $"+Number(l.budget).toFixed(2):"Precio a cotizar")+'</span><span class="privacy">🔒 Contacto protegido</span></div></article>').join("");
+ g.innerHTML=r.data.map(l=>'<article class="opportunity" tabindex="0" role="button" data-load="'+l.id+'"><div class="opp-head"><span class="pill">📦 '+esc(l.cargo_type)+'</span><span class="urgency">'+esc(l.urgency)+'</span></div><div class="opp-route"><strong>'+esc(l.origin_area)+'</strong><span>→</span><strong>'+esc(l.destination_area)+'</strong></div><div class="opp-meta"><span>⚖️ '+esc(l.quantity)+'</span><span>📅 '+esc(l.requested_date)+'</span></div><div class="opp-bottom"><span class="budget">'+(l.budget!==null&&l.budget!==undefined?"Presupuesto $"+Number(l.budget).toFixed(2):"Precio a cotizar")+'</span><span class="privacy">🔒 Contacto protegido</span></div><div class="opp-action">Ver oportunidad →</div></article>').join("");
+document.querySelectorAll(".opportunity[data-load]").forEach(card=>{card.onclick=()=>opportunityDetails(card.dataset.load);card.onkeydown=e=>{if(e.key==="Enter"||e.key===" ")opportunityDetails(card.dataset.load)}});
 }
 let liveChannel=null;
 function startLiveMarket(){
