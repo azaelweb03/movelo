@@ -54,9 +54,39 @@ async function renderHeroAvailability(){
  }
 }
 function authForm(role){
- openModal('<span class="eyebrow">ENTRAR A MOVELO</span><h2>'+ (role==="customer"?"Publicar una carga":"Encontrar cargas")+'</h2><p class="modal-sub">Crea tu cuenta o entra con la que ya tienes.</p><form id="authForm"><label>Correo<input name="email" type="email" required placeholder="tu@email.com"></label><label>Contraseña<input name="password" type="password" minlength="6" required placeholder="Mínimo 6 caracteres"></label><div class="two"><button class="secondary" type="button" id="signupBtn">Crear cuenta</button><button class="primary" type="submit">Entrar</button></div><button class="link-btn" type="button" id="resetBtn">¿Olvidaste tu contraseña?</button><small class="form-note" id="authMsg">🔒 Tu teléfono no se muestra al otro usuario.</small></form>');
- const authMessage=$("#authMsg"); $("#signupBtn").onclick=async()=>{const d=Object.fromEntries(new FormData($("#authForm")));const r=await sb.auth.signUp({email:d.email,password:d.password});authMessage.textContent=r.error?r.error.message:(r.data.session?"Cuenta creada.":"Cuenta creada. Revisa tu correo para confirmar y luego entra.")}; $("#resetBtn").onclick=async()=>{const email=$("#authForm").elements.email.value.trim();if(!email){authMessage.textContent="Escribe primero tu correo.";return}const r=await sb.auth.resetPasswordForEmail(email,{redirectTo:window.location.origin});authMessage.textContent=r.error?r.error.message:"Te enviamos un enlace para crear una contraseña nueva. Revisa tu correo.";};
- $("#authForm").onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const r=await sb.auth.signInWithPassword({email:d.email,password:d.password});if(r.error){$("#authMsg").textContent=r.error.message;return}await profile(role);closeModal();render();role==="customer"?loadForm():carrierDashboard()}
+ openModal('<span class="eyebrow">ENTRAR A MOVELO</span><h2>'+ (role==="customer"?"Publicar una carga":"Encontrar cargas")+'</h2><p class="modal-sub">Crea tu cuenta o entra con la que ya tienes.</p><form id="authForm"><label>Correo<input name="email" type="email" autocomplete="email" required placeholder="tu@email.com"></label><label>Contraseña<input name="password" type="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo 6 caracteres"></label><div class="two"><button class="secondary" type="button" id="signupBtn">Crear cuenta</button><button class="primary" type="submit" id="loginBtn">Entrar</button></div><small class="form-note" id="authMsg">🔒 Tu teléfono no se muestra al otro usuario.</small></form>');
+ const form=$("#authForm"),authMessage=$("#authMsg"),loginBtn=$("#loginBtn");
+ $("#signupBtn").onclick=async()=>{
+   const d=Object.fromEntries(new FormData(form));
+   const email=String(d.email||"").trim().toLowerCase(),password=String(d.password||"");
+   loginBtn.disabled=true;
+   const r=await sb.auth.signUp({email,password});
+   loginBtn.disabled=false;
+   authMessage.textContent=r.error?r.error.message:(r.data.session?"Cuenta creada.":"Cuenta creada. Revisa tu correo para confirmar y luego entra.");
+ };
+ form.onsubmit=async e=>{
+   e.preventDefault();
+   const d=Object.fromEntries(new FormData(e.target));
+   const email=String(d.email||"").trim().toLowerCase(),password=String(d.password||"");
+   loginBtn.disabled=true;
+   loginBtn.textContent="Entrando…";
+   authMessage.textContent="Conectando con MOVELO…";
+   try{
+     const r=await sb.auth.signInWithPassword({email,password});
+     if(r.error){authMessage.textContent=r.error.message;return}
+     if(!r.data?.session){authMessage.textContent="La cuenta fue aceptada pero no se recibió la sesión. Vuelve a tocar Entrar.";return}
+     await profile(role);
+     closeModal();
+     await render();
+     role==="customer"?loadForm():carrierDashboard();
+   }catch(err){
+     console.error(err);
+     authMessage.textContent=err?.message||"No pudimos abrir tu sesión. Intenta de nuevo.";
+   }finally{
+     loginBtn.disabled=false;
+     loginBtn.textContent="Entrar";
+   }
+ }
 }
 function loadForm(){
  openModal('<span class="eyebrow">CLIENTE · NECESITO MOVER</span><h2>¿Qué necesitas mover?</h2><p class="modal-sub">Primero eliges qué vas a mover. MOVELO te muestra solo las preguntas necesarias.</p><form id="loadForm"><label>¿Qué necesitas mover?<select name="move_type" id="moveType" required><option value="">Elige una opción</option><option value="persona">👤 Persona</option><option value="animal">🐄 Animal</option><option value="carga">📦 Carga</option><option value="mudanza">🏠 Mudanza</option></select></label><div id="moveDetails"></div><div class="two"><label>De<input name="origin" required placeholder="Ej. Penonomé"></label><label>A<input name="destination" required placeholder="Ej. Panamá"></label></div><div class="two"><label>Fecha<input name="pickup_date" type="date" required></label><label>Cantidad / tamaño<input name="quantity" required placeholder="Ej. 1,500 kg"></label></div><label>Urgencia<select name="urgency"><option>Normal</option><option>Pronto</option><option>Urgente</option></select></label><label>Presupuesto (opcional)<input name="budget" type="number" step="0.01" placeholder="Ej. 180"></label><label>Detalles adicionales<textarea name="notes" rows="3" placeholder="Horario, dirección de referencia, fragilidad, requisitos…"></textarea></label><button class="primary submit">Buscar transporte →</button><small class="form-note">🔒 Tu teléfono no se publica. MOVELO mantiene la comunicación protegida.</small></form>');
