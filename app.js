@@ -11,7 +11,8 @@ function hasBlockedNumber(v){
  return groups.some(x=>x.replace(/\D/g,"").length>=7);
 }
 function validatePublicText(values){
- return Object.values(values||{}).some(v=>hasBlockedNumber(v));
+ const textFields=["origin","destination","notes","cargo_detail","service_detail","work_location","quantity_detail"];
+ return textFields.some(k=>hasBlockedNumber(values?.[k]));
 }
 function rejectConfidentialData(){
  alert(CONFIDENTIAL_MSG);
