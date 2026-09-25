@@ -185,7 +185,8 @@ async function carrierDashboard(){
    if(!/^\d{4}$/.test(String(d.vehicle_year||""))){alert("Indica un año válido.");return}
    try{
      const licenseFace=await uploadCarrierPhoto(d.license_face_photo,"license-face",u.id);
-     const vehicleFiles=e.target.querySelector('input[name="vehicle_photo"]').files;if(vehicleFiles.length!==2)throw new Error("Debes subir exactamente 2 fotos del vehículo o maquinaria.");\n     const vehicle=await uploadCarrierPhoto(vehicleFiles[0],"vehicle-1",u.id);
+     const vehicleFiles=e.target.querySelector('input[name="vehicle_photo"]').files;if(vehicleFiles.length!==2)throw new Error("Debes subir exactamente 2 fotos del vehículo o maquinaria.");
+     const vehicle=await uploadCarrierPhoto(vehicleFiles[0],"vehicle-1",u.id);
      const vehicle2=await uploadCarrierPhoto(vehicleFiles[1],"vehicle-2",u.id);
      const r=await sb.from("carrier_profiles").upsert({id:u.id,vehicle_type:d.vehicle_type,vehicle_make:d.vehicle_make,vehicle_year:Number(d.vehicle_year),vehicle_condition:d.vehicle_condition,capacity:d.capacity,base_zone:d.base_zone,cargo_types:(d.cargo_types||"").split(",").map(x=>x.trim()).filter(Boolean),service_types:(d.service_types||"").split(",").map(x=>x.trim()).filter(Boolean),vehicle_description:d.vehicle_description||null,face_photo_path:licenseFace,id_card_photo_path:licenseFace,driver_document_photo_path:null,vehicle_photo_path:vehicle,vehicle_photo_2_path:vehicle2,verification_status:"pending",return_alerts:d.return_alerts==="true"});
      if(r.error)throw r.error;
